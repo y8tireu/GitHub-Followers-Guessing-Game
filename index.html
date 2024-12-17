@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Followers Guessing Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #121212;
+            color: #e0e0e0;
+            margin: 0;
+        }
+        h1 {
+            color: #ffffff;
+        }
+        .container {
+            text-align: center;
+            background: #1e1e1e;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.6);
+            border-radius: 10px;
+        }
+        img {
+            border-radius: 50%;
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+        }
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            background: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .score {
+            margin-top: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+        .result {
+            color: #4caf50;
+        }
+        .result.wrong {
+            color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <h1>GitHub Followers Guessing Game</h1>
+    <div class="container">
+        <div id="current-user">
+            <p>Loading user...</p>
+        </div>
+        <div id="game">
+            <p>Do you think the next user has more or fewer followers?</p>
+            <button onclick="makeGuess('higher')">Higher</button>
+            <button onclick="makeGuess('lower')">Lower</button>
+            <div id="result" class="result"></div>
+        </div>
+        <div class="score">Score: <span id="score">0</span></div>
+    </div>
+
+    <script>
+        const apiUrl = 'https://api.github.com/users?since=';
+        let currentUser = {};
+        let score = 0;
+        let lastFollowersCount = 0;
+
+        async function fetchRandomUser() {
+            try {
+                const randomId = Math.floor(Math.random() * 100000);
+                const response = await fetch(apiUrl + randomId);
+                const users = await response.json();
+                const randomUser = users[Math.floor(Math.random() * users.length)];
+                const userDetails = await fetch(randomUser.url);
+                const userData = await userDetails.json();
+                return {
+                    username: userData.login,
+                    avatar: userData.avatar_url,
+                    followers: userData.followers,
+                };
+            } catch (error) {
+                console.error('Error fetching user:', error);
+                return null;
+            }
+        }
+
+        async function loadUser() {
+            currentUser = await fetchRandomUser();
+            if (currentUser) {
+                document.getElementById('current-user').innerHTML = `
+                    <h2>${currentUser.username}</h2>
+                    <img src="${currentUser.avatar}" alt="User Avatar">
+                    <p>Followers: ${currentUser.followers}</p>
+                `;
+                lastFollowersCount = currentUser.followers;
+            } else {
+                alert('Failed to load user. Refresh the page!');
+            }
+        }
+
+        async function makeGuess(guess) {
+            const nextUser = await fetchRandomUser();
+            if (!nextUser) return;
+
+            const resultText = document.getElementById('result');
+            document.getElementById('current-user').innerHTML = `
+                <h2>${nextUser.username}</h2>
+                <img src="${nextUser.avatar}" alt="User Avatar">
+                <p>Followers: ${nextUser.followers}</p>
+            `;
+
+            if (
+                (guess === 'higher' && nextUser.followers > lastFollowersCount) ||
+                (guess === 'lower' && nextUser.followers < lastFollowersCount)
+            ) {
+                score++;
+                resultText.innerText = 'Correct!';
+                resultText.className = 'result';
+            } else {
+                resultText.innerText = 'Wrong! Game Over.';
+                resultText.className = 'result wrong';
+                score = 0; // Reset the score on wrong guess
+            }
+
+            document.getElementById('score').innerText = score;
+            lastFollowersCount = nextUser.followers;
+        }
+
+        // Load the first user when the game starts
+        loadUser();
+    </script>
+</body>
+</html>
+
